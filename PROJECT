@@ -1,0 +1,11 @@
+domain: kanzifucius.com
+layout: go.kubebuilder.io/v2
+projectName: promethues-operator-slos
+repo: github.com/kanzifucius/promethues-operator-slos
+resources:
+- group: monitoring
+  kind: Slo
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
