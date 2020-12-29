@@ -15,8 +15,6 @@ spec:
           sum (rate(http_requests_total{job="service-a", status="5xx"}[$window])) /
                 sum (rate(http_requests_total{job="service-a"}[$window]))
     latencyRecord:
-      buckets:
-        - "777"
       alertMethod: multi-window
       expr: |-
            sum (rate(http_request_duration_seconds_bucket{job="service-a", le="$le"}[$window])) /

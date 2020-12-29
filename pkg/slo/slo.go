@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -60,7 +61,7 @@ func GeneratePromRules(sloDefinition *monitoringv1alpha1.Slo) (*promoperator.Pro
 		return nil, err
 	}
 	Groups = append(Groups, promoperator.RuleGroup{
-		Name:  "slo:" + sloDefinition.Name + ":alert",
+		Name:  "slo:" + santizeString(sloDefinition.Name) + ":alert",
 		Rules: ruleAlerts,
 	})
 
@@ -118,7 +119,7 @@ func generateAlertRules(sloDefinition *monitoringv1alpha1.Slo) ([]promoperator.R
 		}
 
 		errorRules, err := errorMethod.AlertForError(&AlertErrorOptions{
-			ServiceName:        sloDefinition.Name,
+			ServiceName:        santizeString(sloDefinition.Name),
 			AvailabilityTarget: sloDefinition.Spec.Objectives.Availability,
 			SLOWindow:          objectivesWindow,
 			ShortWindow:        sloDefinition.Spec.ErrorRateRecord.GetShortWindow(),
@@ -179,7 +180,7 @@ func generateAlertRules(sloDefinition *monitoringv1alpha1.Slo) ([]promoperator.R
 			}
 
 			latencyRules, err := latencyMethod.AlertForLatency(&AlertLatencyOptions{
-				ServiceName: sloDefinition.Name,
+				ServiceName: santizeString(sloDefinition.Name),
 				Targets:     LatencyTargets,
 				SLOWindow:   objectivesWindow,
 				ShortWindow: sloDefinition.Spec.LatencyRecord.GetShortWindow(),
@@ -254,7 +255,7 @@ func generateRules(bucket string, latencyBuckets []string, sloDefinition *monito
 	var rules []promoperator.Rule
 	if sloDefinition.Spec.TrafficRateRecord.Expr != "" {
 		trafficRateRecord := promoperator.Rule{
-			Record: fmt.Sprintf("slo:%s:service_traffic:ratio_rate_%s", sloDefinition.Name, bucket),
+			Record: fmt.Sprintf("slo:%s:service_traffic:ratio_rate_%s", santizeString(sloDefinition.Name), bucket),
 			Expr:   intstr.IntOrString{Type: intstr.String, StrVal: sloDefinition.Spec.TrafficRateRecord.ComputeExpr(bucket, "")},
 			Labels: sloDefinition.Spec.Labels,
 		}
@@ -264,7 +265,7 @@ func generateRules(bucket string, latencyBuckets []string, sloDefinition *monito
 
 	if sloDefinition.Spec.ErrorRateRecord.Expr != "" {
 		errorRateRecord := promoperator.Rule{
-			Record: fmt.Sprintf("slo:%s:service_errors_total:ratio_rate_%s", sloDefinition.Name, bucket),
+			Record: fmt.Sprintf("slo:%s:service_errors_total:ratio_rate_%s", santizeString(sloDefinition.Name), bucket),
 			Expr:   intstr.IntOrString{Type: intstr.String, StrVal: sloDefinition.Spec.ErrorRateRecord.ComputeExpr(bucket, "")},
 			Labels: sloDefinition.Spec.Labels,
 		}
@@ -275,7 +276,7 @@ func generateRules(bucket string, latencyBuckets []string, sloDefinition *monito
 	if sloDefinition.Spec.LatencyQuantileRecord.Expr != "" {
 		for _, quantile := range quantiles {
 			latencyQuantileRecord := promoperator.Rule{
-				Record: fmt.Sprintf("slo:%s:service_latency:%s_%s", sloDefinition.Name, quantile.name, bucket),
+				Record: fmt.Sprintf("slo:%s:service_latency:%s_%s", santizeString(sloDefinition.Name), quantile.name, bucket),
 				Expr:   intstr.IntOrString{Type: intstr.String, StrVal: sloDefinition.Spec.LatencyQuantileRecord.ComputeQuantile(bucket, quantile.quantile)},
 				Labels: sloDefinition.Spec.Labels,
 			}
@@ -287,7 +288,7 @@ func generateRules(bucket string, latencyBuckets []string, sloDefinition *monito
 	if sloDefinition.Spec.LatencyRecord.Expr != "" {
 		for _, latencyBucket := range latencyBuckets {
 			latencyRateRecord := promoperator.Rule{
-				Record: fmt.Sprintf("slo:%s:service_latency:ratio_rate_%s", sloDefinition.Name, bucket),
+				Record: fmt.Sprintf("slo:%s:service_latency:ratio_rate_%s", santizeString(sloDefinition.Name), bucket),
 				Expr:   intstr.IntOrString{Type: intstr.String, StrVal: sloDefinition.Spec.LatencyRecord.ComputeExpr(bucket, latencyBucket)},
 				Labels: sloDefinition.Spec.Labels,
 			}
@@ -299,4 +300,10 @@ func generateRules(bucket string, latencyBuckets []string, sloDefinition *monito
 	}
 
 	return rules
+}
+
+func santizeString(name string) string {
+
+	return strings.Replace(name, "-", "_", -1)
+
 }
