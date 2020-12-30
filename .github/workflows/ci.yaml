@@ -1,0 +1,26 @@
+name: "Operator CI"
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    name: Build & Deploy operator
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Declare Version Variables
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          echo "::set-output name=version::$(make version-image)"
+      - name: Run Unit Tests
+        run: make test
+      - name: Build operator
+        run: make docker-build
+      - name: Deploy Docker image
+        run: make docker-push
