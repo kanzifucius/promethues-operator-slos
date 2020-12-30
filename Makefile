@@ -46,6 +46,10 @@ install: manifests kustomize
 
 installExample:
 	$(KUSTOMIZE) build config/samples/ | kubectl apply -f -
+
+uninstallExample:
+	$(KUSTOMIZE) build config/samples/ | kubectl delete -f -
+
 # Uninstall CRDs from a cluster
 uninstall: manifests kustomize
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -

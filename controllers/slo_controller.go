@@ -21,6 +21,7 @@ import (
 	"github.com/kanzifucius/promethues-operator-slos/pkg/slo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
@@ -90,12 +91,12 @@ func (r *SloReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// Define a new deployment
 		rule, err := slo.GeneratePromRules(sloDefinition)
 		if err != nil {
-			log.Error(err, "Failed to genreate promethues ")
+			log.Error(err, "Failed to generate Prometheus rule ")
 			return ctrl.Result{}, err
 		}
 		err = ctrl.SetControllerReference(sloDefinition, rule, r.Scheme)
 		if err != nil {
-			log.Error(err, "Failed to set owner for proßmethues rule")
+			log.Error(err, "Failed to set owner for Prometheus rule")
 			return ctrl.Result{}, err
 		}
 		log.Info("Creating a new Prometheus Rules 	", "rule", rule.Name)
@@ -111,6 +112,27 @@ func (r *SloReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Error(err, "Failed to get Slo")
 		return ctrl.Result{}, err
 	}
+
+	// check if we need to update the rule
+	rule, err := slo.GeneratePromRules(sloDefinition)
+	if !reflect.DeepEqual(found.Spec, rule.Spec) {
+		found.Spec = rule.Spec
+		err = ctrl.SetControllerReference(sloDefinition, rule, r.Scheme)
+		if err != nil {
+			log.Error(err, "Failed to update owner for Prometheus rule")
+			return ctrl.Result{}, err
+		}
+		log.Info("Creating a new Prometheus Rules 	", "rule", rule.Name)
+		err = r.Update(ctx, found)
+		if err != nil {
+			r.Log.Error(err, "Failed to update new Prometheus")
+
+			return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
