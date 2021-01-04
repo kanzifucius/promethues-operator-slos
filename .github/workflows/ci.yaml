@@ -24,6 +24,6 @@ jobs:
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Deploy Docker image
         run: make docker-push
