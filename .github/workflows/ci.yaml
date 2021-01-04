@@ -20,5 +20,10 @@ jobs:
           echo "::set-output name=version::$(make version-image)"
       - name: Build operator
         run: make docker-build
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }
       - name: Deploy Docker image
         run: make docker-push
